@@ -62,23 +62,20 @@ const HistorialScreen = ({
         console.log('Falling back to AsyncStorage');
       }
 
-        // Fallback: Load from AsyncStorage
+      // Fallback: Load from AsyncStorage
       try {
-          const cachedHistory = await AsyncStorage.getItem(HISTORY_STORAGE_KEY);
-          if (cachedHistory && (!history || history.length === 0)) {
-              onUpdateHistory(JSON.parse(cachedHistory));
-          }
-      } catch (error) {
+        const cachedHistory = await AsyncStorage.getItem(HISTORY_STORAGE_KEY);
+        if (cachedHistory && (!history || history.length === 0)) {
+          onUpdateHistory(JSON.parse(cachedHistory));
         }
       } catch (error) {
         console.error('Error loading cached history:', error);
       }
     };
-    loadCachedHistory();
-  }, []);
+    loadHistory();
+  }, [db, fixedUserId]);
 
-      loadHistory();
-    }, [db, fixedUserId]);
+    
   
   useEffect(() => {
     const saveHistory = async () => {
@@ -86,11 +83,11 @@ const HistorialScreen = ({
           try {
             // Save to AsyncStorage
             await AsyncStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
-  
+
             // Save to Firestore
             const userDocRef = doc(collection(db, 'history'), fixedUserId);
             await setDoc(userDocRef, { orders: history });
-  
+
             console.log('History saved to AsyncStorage and Firestore');
           } catch (error) {
             console.error('Error saving history:', error);
@@ -98,7 +95,7 @@ const HistorialScreen = ({
         }
       };
 
-      saveHistory();
+      saveHistory();;
   }, [db, fixedUserId, history]);
 
 
@@ -113,16 +110,27 @@ const HistorialScreen = ({
           text: 'Reiniciar',
           onPress: async () => {
             try {
-              // Remove from AsyncStorage
-              await AsyncStorage.removeItem(HISTORY_STORAGE_KEY);
+              // Generate the current date in YYYY-MM-DD format
+              const today = new Date();
+              const formattedDate = today.toISOString().split('T')[0];
 
-              // Remove from Firestore
-              const userDocRef = doc(collection(db, 'history'), fixedUserId);
-              await deleteDoc(userDocRef);
+              // Create a new collection for today's history
+              const newHistoryCollectionRef = doc(collection(db, 'dailyHistory'), `${fixedUserId}_${formattedDate}`);
+              
+              // Save the current history to the new collection
+              const currentHistoryDocRef = doc(collection(db, 'history'), fixedUserId);
+              const currentHistorySnap = await getDoc(currentHistoryDocRef);
+
+              if (currentHistorySnap.exists()) {
+                await setDoc(newHistoryCollectionRef, currentHistorySnap.data());
+              }
+              // Clear the current history
+              await setDoc(currentHistoryDocRef, {orders: []});
+              await AsyncStorage.setItem(HISTORY_STORAGE_KEY,JSON.stringify([]));
               await AsyncStorage.removeItem('@ryu_sushi_clients');
               onUpdateHistory([]);
             } catch (error) {
-              console.error('Error resetting history and clients:', error);
+              console.error('Error resetting history:', error);
               Alert.alert('Error', 'No se pudo reiniciar el historial');
             }
           },
@@ -169,7 +177,7 @@ const HistorialScreen = ({
     return orderItems.reduce((acc, item) => {
       const price = parseFloat(item.price) || 0;
       acc.total += price;
-      
+
       if (item.type === 'Sushi') acc.sushi += price;
       else if (item.type === 'Alitas') {
         acc.wings += price;
@@ -181,7 +189,7 @@ const HistorialScreen = ({
         acc.boneless += price;
         if (item.name.toLowerCase().includes('media')) acc.halfOrdersBoneless++;
       }
-      
+
       return acc;
     }, {
       total: 0,
@@ -233,7 +241,7 @@ const HistorialScreen = ({
       const fileName = `reporte_ventas_${new Date().toISOString().split('T')[0]}`;
 
       const ImageRendererComponent = await exportToImage(htmlContent, fileName);
-      
+
       if (ImageRendererComponent) {
         setImageProcessingComponent(<ImageRendererComponent />);
         setImageProcessingModalVisible(true);

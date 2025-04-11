@@ -1,0 +1,8 @@
+allprojects {
+    repositories {
+        maven {
+            url 'http://jcenter.bintray.com/'
+            allowInsecureProtocol = true
+        }
+    }
+}
