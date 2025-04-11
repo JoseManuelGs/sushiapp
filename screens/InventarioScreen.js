@@ -119,7 +119,7 @@ const InventarioScreen = ({ isDarkMode }) => {
   const themeStyles = useMemo(() => ({
     container: { 
       backgroundColor: isDarkMode ? '#121212' : '#fff',
-    },
+     },
     text: { 
       color: isDarkMode ? '#fff' : '#000',
     },
@@ -133,12 +133,12 @@ const InventarioScreen = ({ isDarkMode }) => {
     },
     input: {
       color: isDarkMode ? '#fff' : '#000',
-      borderColor: isDarkMode ? '#555' : '#ddd',
+       borderColor: isDarkMode ? '#555' : '#ddd',
       backgroundColor: isDarkMode ? '#333' : '#fff'
     },
     button: {
       backgroundColor: isDarkMode ? '#333' : '#ddd',
-      borderColor: isDarkMode ? '#555' : '#ccc'
+      borderColor: isDarkMode ? '#555' : '#ccc',
     }
   }), [isDarkMode]);
 
@@ -245,7 +245,7 @@ const InventarioScreen = ({ isDarkMode }) => {
     const statusColor = STATUS_CONFIG[item.status]?.color || 'gray';
     const borderColor = statusColor === 'gray' ?
       themeStyles.itemContainer.borderColor : statusColor;
-
+  
     return (
       <TouchableOpacity
         style={[
@@ -305,7 +305,7 @@ const InventarioScreen = ({ isDarkMode }) => {
   };
 
   return (
-    <View style={[styles.container, themeStyles.container]}>
+     <View style={[styles.container, themeStyles.container]}>
       <Text style={[styles.title, themeStyles.text]}>INVENTARIO</Text>
 
       <View style={styles.flatListWrapper}>
@@ -322,9 +322,9 @@ const InventarioScreen = ({ isDarkMode }) => {
           scrollEventThrottle={16}
         />
       </View>
-
+  
       <TouchableOpacity
-        style={[styles.saveButton, { backgroundColor: '#555', marginHorizontal: 20 }]}
+        style={[styles.saveButton, { backgroundColor: isDarkMode ? '#444' : '#555', marginHorizontal: 20 }]}
         onPress={resetInventory}
       >
         <Text style={styles.buttonText}>RESET INVENTARIO</Text>
@@ -397,10 +397,10 @@ const InventarioScreen = ({ isDarkMode }) => {
             </View>
 
             <TouchableOpacity
-              style={[styles.saveButton, { backgroundColor: 'green' }]}
+              style={[styles.saveButton, { backgroundColor: 'green', borderColor:isDarkMode ? '#555':'#ddd', borderWidth: 1}]}
               onPress={saveChanges}
             >
-              <Text style={styles.buttonText}>GUARDAR</Text>
+              <Text style={[styles.buttonText,{color:'white'}]}>GUARDAR</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -421,6 +421,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     overflow: 'hidden',
+    
   },
   title: {
     fontSize: 24,
@@ -429,6 +430,7 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   flatListWrapper: {
+    
     flex: 1,
     width: '100%',
   },
@@ -450,6 +452,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 150,
   },
+  
   itemImage: {
     width: 50,
     height: 50,
@@ -528,6 +531,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 6,
     alignItems: 'center',
+   
     marginTop: 10,
   },
   closeButton: {

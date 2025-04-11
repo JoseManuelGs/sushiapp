@@ -14,8 +14,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { generatePDFContent, generateTicketHTML, exportToPDF, printTicket, exportToImage } from './pdfGenerator';
 import CalculatorModal from './CalculatorModal';
 import { MaterialCommunityIcons } from '@expo/vector-icons'; // Asegúrate de tener instalado expo-vector-icons
+// Firebase imports
+import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { app } from './firebaseConfig'; // Assuming you have your Firebase config in firebaseConfig.js
 
 const HISTORY_STORAGE_KEY = '@ryu_sushi_history';
+
 
 const HistorialScreen = ({ 
   history = [], 
@@ -33,13 +37,38 @@ const HistorialScreen = ({
   const [calculatorInput, setCalculatorInput] = useState('');
   const [calculatorHistory, setCalculatorHistory] = useState([]);
 
-  // Cargar y guardar historial
+    // Get a reference to Firestore
+    const db = getFirestore(app);
+
+    // Replace with actual user ID when authentication is implemented
+    const fixedUserId = 'fixedUserId'; 
+  
   useEffect(() => {
-    const loadCachedHistory = async () => {
+    const loadHistory = async () => {
       try {
-        const cachedHistory = await AsyncStorage.getItem(HISTORY_STORAGE_KEY);
-        if (cachedHistory && (!history || history.length === 0)) {
-          onUpdateHistory(JSON.parse(cachedHistory));
+        // Try to load from Firestore first
+        const userDocRef = doc(collection(db, 'history'), fixedUserId);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          console.log('Loaded history from Firestore');
+          onUpdateHistory(userDocSnap.data().orders || []);
+          return; // Stop here if Firestore data is found
+        }
+
+        console.log('No history found in Firestore, loading from AsyncStorage');
+      } catch (error) {
+        console.error('Error loading from Firestore:', error);
+        console.log('Falling back to AsyncStorage');
+      }
+
+        // Fallback: Load from AsyncStorage
+      try {
+          const cachedHistory = await AsyncStorage.getItem(HISTORY_STORAGE_KEY);
+          if (cachedHistory && (!history || history.length === 0)) {
+              onUpdateHistory(JSON.parse(cachedHistory));
+          }
+      } catch (error) {
         }
       } catch (error) {
         console.error('Error loading cached history:', error);
@@ -48,18 +77,30 @@ const HistorialScreen = ({
     loadCachedHistory();
   }, []);
 
+      loadHistory();
+    }, [db, fixedUserId]);
+  
   useEffect(() => {
-    const saveToCacheAsync = async (data) => {
-      try {
-        await AsyncStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(data));
-      } catch (error) {
-        console.error('Error saving to cache:', error);
-      }
-    };
-    if (history?.length > 0) {
-      saveToCacheAsync(history);
-    }
-  }, [history]);
+    const saveHistory = async () => {
+        if (history?.length > 0) {
+          try {
+            // Save to AsyncStorage
+            await AsyncStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+  
+            // Save to Firestore
+            const userDocRef = doc(collection(db, 'history'), fixedUserId);
+            await setDoc(userDocRef, { orders: history });
+  
+            console.log('History saved to AsyncStorage and Firestore');
+          } catch (error) {
+            console.error('Error saving history:', error);
+          }
+        }
+      };
+
+      saveHistory();
+  }, [db, fixedUserId, history]);
+
 
   // Funciones de manejo del historial
   const handleResetHistory = useCallback(() => {
@@ -72,7 +113,12 @@ const HistorialScreen = ({
           text: 'Reiniciar',
           onPress: async () => {
             try {
+              // Remove from AsyncStorage
               await AsyncStorage.removeItem(HISTORY_STORAGE_KEY);
+
+              // Remove from Firestore
+              const userDocRef = doc(collection(db, 'history'), fixedUserId);
+              await deleteDoc(userDocRef);
               await AsyncStorage.removeItem('@ryu_sushi_clients');
               onUpdateHistory([]);
             } catch (error) {
@@ -84,7 +130,7 @@ const HistorialScreen = ({
         },
       ]
     );
-  }, [onUpdateHistory]);
+  }, [db, fixedUserId, onUpdateHistory]);
 
   const handleDeleteOrder = useCallback(async (clientId) => {
     const shouldDelete = Platform.OS === 'web'
